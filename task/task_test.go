@@ -9,13 +9,11 @@ import (
 	"github.com/hamdouni/tuto-sqlite-todo/repo/db"
 	"github.com/hamdouni/tuto-sqlite-todo/repo/ram"
 	"github.com/hamdouni/tuto-sqlite-todo/task"
-
-	_ "modernc.org/sqlite"
 )
 
 func initRepo(withdata bool) (task.Repository, error) {
-	// repo, err := initFakeSQLiteRepo()
-	repo, err := initFakeRamRepo()
+	repo, err := initFakeSQLiteRepo()
+	// repo, err := initFakeRamRepo()
 	if err != nil {
 		return &repo, err
 	}

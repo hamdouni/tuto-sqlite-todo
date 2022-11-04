@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	_ "modernc.org/sqlite"
+
 	"github.com/hamdouni/tuto-sqlite-todo/task"
 )
 
