@@ -2,11 +2,12 @@ package main
 
 import (
 	"fmt"
-	"goExploration/sqlite/repo/db"
-	"goExploration/sqlite/task"
 	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/hamdouni/tuto-sqlite-todo/repo/db"
+	"github.com/hamdouni/tuto-sqlite-todo/task"
 
 	_ "modernc.org/sqlite"
 )

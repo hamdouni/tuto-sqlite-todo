@@ -2,12 +2,13 @@ package task_test
 
 import (
 	"fmt"
-	"goExploration/sqlite/repo/db"
-	"goExploration/sqlite/repo/ram"
-	"goExploration/sqlite/task"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/hamdouni/tuto-sqlite-todo/repo/db"
+	"github.com/hamdouni/tuto-sqlite-todo/repo/ram"
+	"github.com/hamdouni/tuto-sqlite-todo/task"
 
 	_ "modernc.org/sqlite"
 )
@@ -18,7 +19,7 @@ func initRepo(withdata bool) (task.Repository, error) {
 	if err != nil {
 		return &repo, err
 	}
-	task.Init(repo)
+	task.Init(&repo)
 	if withdata {
 		for i := 0; i < 3; i++ {
 			task.Create(fmt.Sprintf("write a book %v", i+1))

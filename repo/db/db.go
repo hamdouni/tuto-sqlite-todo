@@ -3,7 +3,8 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"goExploration/sqlite/task"
+
+	"github.com/hamdouni/tuto-sqlite-todo/task"
 )
 
 // Store is a SQLite storage.

@@ -2,7 +2,8 @@ package ram
 
 import (
 	"fmt"
-	"goExploration/sqlite/task"
+
+	"github.com/hamdouni/tuto-sqlite-todo/task"
 )
 
 // List is a simple in memory slice for storing tasks.
