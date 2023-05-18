@@ -1,4 +1,4 @@
-package db
+package sqlite
 
 func (s *Store) init_schema() error {
 	// schema for task table

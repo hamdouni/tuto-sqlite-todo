@@ -1,33 +1,24 @@
-// Le package "task" définit ma couche métier.
-// C'est la partie qui doit définir les fonctionnalités propre à mon métier et
-// les interactions éventuelles avec l'extérieur.
+// Le package "task" définit la couche métier.
+// Il définit les fonctionnalités propre au métier et les interactions
+// éventuelles avec l'extérieur.
 package task
 
-// Item est notre structure principale. C'est notre model de donnée pour
-// stocker une tâche.
-type Item struct {
-	ID          int
-	Description string
-	State       State
-}
+import "fmt"
 
-// State définit les différents états possibles d'une tâche.
-// La liste des états possibles sont : Opened, Closed
-type State int
+// Status définit les différents états possibles d'une tâche.
+type Status int
 
 const (
-	Opened State = iota
-	Closed
+	StatusOpened Status = iota
+	StatusClosed
 )
 
-// Repository décrit la façon dont le métier intéragit avec le dépot de données
-type Repository interface {
-	Save(Item) (ID int, err error)
-	Update(Item) error
-	GetAll() []Item
-	GetByID(ID int) (Item, error)
-	GetByState(status State) []Item
-	Close() error
+// Item est notre structure principale. C'est notre modèle de donnée pour
+// stocker une tâche.
+type Item struct {
+	ID          int64
+	Description string
+	State       Status
 }
 
 // config stock la configuration de l'application.
@@ -43,32 +34,68 @@ func Init(r Repository) {
 	config.repo = r
 }
 
-// Create crée une tâche à partir d'une description. On s'appuie principalement
-// sur la façon de stocker une tâche par le dépot de données (bref, on fait pas
-// grand chose au niveau "métier")
-func Create(desc string) (int, error) {
-	return config.repo.Save(Item{
+// Create crée une tâche à partir d'une description
+func Create(desc string) (int64, error) {
+	if desc == "" {
+		return 0, ErrEmptyTask
+	}
+	if config.repo == nil {
+		return 0, ErrRepositoryNotDefined
+	}
+	id, err := config.repo.Create(Item{
 		Description: desc,
-		State:       Opened,
+		State:       StatusOpened,
 	})
+	if err != nil {
+		return 0, fmt.Errorf("creating task '%s': %s", desc, err)
+	}
+	return id, nil
 }
 
-// Close passe le statut d'une tâche à "fermé".
-// D'un point de vue "métier" :
-// 1. récupérer la tâche
-// 2. modifier son statut
-// 3. sauvegarder la tâche
-func Close(ID int) error {
-	it, err := config.repo.GetByID(ID)
+// Close passe le statut d'une tâche à "fermé"
+func Close(id int64) error {
+	it, err := config.repo.GetByID(id)
 	if err != nil {
-		return err
+		return fmt.Errorf("closing task id %d: %s", id, err)
 	}
-	it.State = Closed
+	it.State = StatusClosed
 	return config.repo.Update(it)
 }
 
-// String permet à notre structure d'être facilement affichage par la lib
-// standard Go (fmt)
+// Get retourne la tâche avec l'id spécifié
+func Get(id int64) (it Item, err error) {
+	it, err = config.repo.GetByID(id)
+	if err != nil {
+		return it, fmt.Errorf("getting task id %d: %s", id, err)
+	}
+	return it, nil
+}
+
+// GetAll retourne toutes les tâches
+func GetAll() (its []Item, err error) {
+	if config.repo == nil {
+		return its, ErrRepositoryNotDefined
+	}
+	return config.repo.GetAll(), nil
+}
+
+// GetAllOpened retourne toutes les tâches ouvertes
+func GetAllOpened() (its []Item, err error) {
+	if config.repo == nil {
+		return its, ErrRepositoryNotDefined
+	}
+	return config.repo.GetByState(StatusOpened), nil
+}
+
+// GetAllClosed retourne toutes les tâches fermées
+func GetAllClosed() (its []Item, err error) {
+	if config.repo == nil {
+		return its, ErrRepositoryNotDefined
+	}
+	return config.repo.GetByState(StatusClosed), nil
+}
+
+// String permet à notre structure d'être facilement affichable
 func (it Item) String() string {
 	return it.Description
 }

@@ -1,4 +1,4 @@
-package db
+package sqlite
 
 import (
 	"database/sql"
@@ -34,7 +34,7 @@ func (s Store) Close() error {
 	return s.database.Close()
 }
 
-func (s Store) Save(t task.Item) (id int, err error) {
+func (s Store) Create(t task.Item) (id int64, err error) {
 	// insert row and return last id
 	q := "INSERT INTO task(description, state) values(?,?)"
 	st, err := s.database.Prepare(q)
@@ -49,7 +49,7 @@ func (s Store) Save(t task.Item) (id int, err error) {
 	if err != nil {
 		return id, err
 	}
-	return int(lastid), nil
+	return lastid, nil
 }
 
 func (s Store) Update(t task.Item) error {
@@ -78,7 +78,7 @@ func (s Store) GetAll() []task.Item {
 	}
 	return t
 }
-func (s Store) GetByID(id int) (task.Item, error) {
+func (s Store) GetByID(id int64) (task.Item, error) {
 	var t task.Item
 	q := "SELECT id,description,state FROM task WHERE id=?"
 	err := s.database.QueryRow(q, id).Scan(&t.ID, &t.Description, &t.State)
@@ -87,7 +87,7 @@ func (s Store) GetByID(id int) (task.Item, error) {
 	}
 	return t, nil
 }
-func (s Store) GetByState(status task.State) []task.Item {
+func (s Store) GetByState(status task.Status) []task.Item {
 	var t []task.Item
 	q := "SELECT id,description,state FROM task WHERE state=?"
 	rows, err := s.database.Query(q, status)

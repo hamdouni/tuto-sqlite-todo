@@ -6,25 +6,30 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hamdouni/tuto-sqlite-todo/repo/db"
 	"github.com/hamdouni/tuto-sqlite-todo/repo/ram"
+	"github.com/hamdouni/tuto-sqlite-todo/repo/sqlite"
 	"github.com/hamdouni/tuto-sqlite-todo/task"
 )
 
-func initRepo(withdata bool) (task.Repository, error) {
-	repo, err := initFakeSQLiteRepo()
-	// repo, err := initFakeRamRepo()
+// Fake repo with specified opened and closed tasks
+func initRepo(opened, closed int) (task.Repository, error) {
+	// repo, err := fakeSQLiteRepo()
+	repo, err := fakeRamRepo()
 	if err != nil {
 		return &repo, err
 	}
 	task.Init(&repo)
-	if withdata {
-		for i := 0; i < 3; i++ {
-			task.Create(fmt.Sprintf("write a book %v", i+1))
+	for i := 0; i < opened; i++ {
+		task.Create(fmt.Sprintf("write a book %v", i+1))
+	}
+	for i := 0; i < closed; i++ {
+		id, err := task.Create(fmt.Sprintf("finish a book %v", i+1))
+		if err != nil {
+			return nil, fmt.Errorf("creating task: %s", err)
 		}
-		for i := 3; i < 6; i++ {
-			task.Create(fmt.Sprintf("finish a book %v", i+1))
-			task.Close(i + 1)
+		err = task.Close(id)
+		if err != nil {
+			return nil, fmt.Errorf("closing task %d: %s", id, err)
 		}
 	}
 	all := repo.GetAll()
@@ -34,76 +39,89 @@ func initRepo(withdata bool) (task.Repository, error) {
 	return &repo, nil
 }
 
-// Fake repo of 6 tasks : 3 opened and 3 closed
-func initFakeRamRepo() (ram.List, error) {
+func fakeRamRepo() (ram.List, error) {
 	return ram.List{}, nil
 }
 
-func initFakeSQLiteRepo() (store db.Store, err error) {
+func fakeSQLiteRepo() (store sqlite.Store, err error) {
 	dir, err := os.MkdirTemp("", "testdb")
 	if err != nil {
 		return store, err
 	}
 	dbpath := filepath.Join(dir, "testfile.db")
-	taskRepo, err := db.Open(dbpath, "")
+	db, err := sqlite.Open(dbpath, "")
 	if err != nil {
 		return store, err
 	}
-	return taskRepo, nil
+	return db, nil
 }
 
-func TestSave(t *testing.T) {
-	taskRepo, err := initRepo(true)
-	if err != nil {
-		t.Fatalf("could not init repo %s", err)
+// ensure the repo is initialized before writing
+func TestWritingNoRepo(t *testing.T) {
+	_, err := task.Create("create without a repo")
+	if err != task.ErrRepositoryNotDefined {
+		t.Fatalf("expected error %s got %s", task.ErrRepositoryNotDefined, err)
 	}
-	defer taskRepo.Close()
-	id := 2
-	item, err := taskRepo.GetByID(id)
-	if err != nil {
-		t.Fatalf("could not get task id %v: %v", id, err)
+}
+
+func TestReadAllFromNoRepo(t *testing.T) {
+	_, err := task.GetAll()
+	if err != task.ErrRepositoryNotDefined {
+		t.Fatalf("expected error %s got %s", task.ErrRepositoryNotDefined, err)
 	}
-	want := "write a book 2"
-	got := item.Description
-	if got != want {
-		t.Fatalf("expected %v got %v", want, got)
+}
+func TestReadAllOpenedFromNoRepo(t *testing.T) {
+	_, err := task.GetAllOpened()
+	if err != task.ErrRepositoryNotDefined {
+		t.Fatalf("expected error %s got %s", task.ErrRepositoryNotDefined, err)
+	}
+}
+func TestReadAllClosedFromNoRepo(t *testing.T) {
+	_, err := task.GetAllClosed()
+	if err != task.ErrRepositoryNotDefined {
+		t.Fatalf("expected error %s got %s", task.ErrRepositoryNotDefined, err)
 	}
 }
 
 func TestGetAll(t *testing.T) {
-	taskRepo, err := initRepo(true)
+	db, err := initRepo(1, 1)
 	if err != nil {
-		t.Fatalf("could not init repo %s", err)
+		t.Fatalf("could not init repo: %s", err)
 	}
-	defer taskRepo.Close()
-	allItems := taskRepo.GetAll()
-	size := len(allItems)
-	if size != 6 {
-		t.Fatalf("expected size 6 got %v", size)
+	defer db.Close()
+
+	items, err := task.GetAll()
+	if err != nil {
+		t.Fatalf("could not get all tasks: %s", err)
 	}
-	for i := 1; i <= 3; i++ {
-		want := fmt.Sprintf("write a book %v", i)
-		got := allItems[i-1].Description
-		if want != got {
-			t.Fatalf("expected item %v to be %v got %v", i, want, got)
-		}
+	size := len(items)
+	if size != 2 {
+		t.Fatalf("expected size 2 got %v", size)
 	}
-	for i := 4; i <= 6; i++ {
-		want := fmt.Sprintf("finish a book %v", i)
-		got := allItems[i-1].Description
-		if want != got {
-			t.Fatalf("expected item %v to be %v got %v", i, want, got)
-		}
+	// item 0
+	got := items[0].Description
+	want := "write a book 1"
+	if want != got {
+		t.Fatalf("expected item %s got %s", want, got)
+	}
+	// item 1
+	got = items[1].Description
+	want = "finish a book 1"
+	if want != got {
+		t.Fatalf("expected item %s got %s", want, got)
 	}
 }
 
 func TestGetOpened(t *testing.T) {
-	taskRepo, err := initRepo(true)
+	db, err := initRepo(3, 3)
 	if err != nil {
 		t.Fatalf("could not init repo %s", err)
 	}
-	defer taskRepo.Close()
-	openedItems := taskRepo.GetByState(task.Opened)
+	defer db.Close()
+	openedItems, err := task.GetAllOpened()
+	if err != nil {
+		t.Fatalf("could not get all opened tasks: %s", err)
+	}
 	size := len(openedItems)
 	if size != 3 {
 		t.Fatalf("expected size 3 got %v", size)
@@ -118,37 +136,42 @@ func TestGetOpened(t *testing.T) {
 }
 
 func TestGetClosed(t *testing.T) {
-	taskRepo, err := initRepo(true)
+	db, err := initRepo(3, 3)
 	if err != nil {
 		t.Fatalf("could not init repo %s", err)
 	}
-	defer taskRepo.Close()
-	closedItems := taskRepo.GetByState(task.Closed)
+	defer db.Close()
+	closedItems, err := task.GetAllClosed()
+	if err != nil {
+		t.Fatalf("could not get all closed tasks: %s", err)
+	}
 	size := len(closedItems)
 	if size != 3 {
 		t.Fatalf("expected size 3 got %v", size)
 	}
 	for i := 1; i <= 3; i++ {
-		want := fmt.Sprintf("finish a book %v", i+3)
+		want := fmt.Sprintf("finish a book %v", i)
 		got := closedItems[i-1].Description
 		if want != got {
-			t.Fatalf("expected item %v to be %v got %v", i+3, want, got)
+			t.Fatalf("expected item %v to be %v got %v", i, want, got)
 		}
 	}
 }
 
 func TestCreateTask(t *testing.T) {
-	taskRepo, err := initRepo(false)
+	db, err := initRepo(3, 3)
 	if err != nil {
 		t.Fatalf("could not init repo %s", err)
 	}
-	defer taskRepo.Close()
+	defer db.Close()
+
 	want := "Only test the parts of the application that you want to work"
+
 	id, err := task.Create(want)
 	if err != nil {
 		t.Fatalf("expected create item not fail got %s", err)
 	}
-	got, err := taskRepo.GetByID(id)
+	got, err := task.Get(id)
 	if err != nil {
 		t.Fatalf("expected item id %d exists got %s", id, err)
 	}
@@ -157,32 +180,54 @@ func TestCreateTask(t *testing.T) {
 	}
 }
 
-func TestCloseTask(t *testing.T) {
-	taskRepo, err := initRepo(false)
+func TestEmptyTask(t *testing.T) {
+	db, err := initRepo(0, 0)
 	if err != nil {
 		t.Fatalf("could not init repo %s", err)
 	}
-	defer taskRepo.Close()
-	empty := len(taskRepo.GetAll())
-	if 0 != empty {
-		t.Fatalf("expected empty repo but got %d", empty)
+	defer db.Close()
+	_, err = task.Create("")
+	if err != task.ErrEmptyTask {
+		t.Fatalf("expecting error %s got %s", task.ErrEmptyTask, err)
 	}
-	want := "The only way to get more done is to have less to do"
-	id, err := task.Create(want)
+}
+
+func TestCloseTask(t *testing.T) {
+
+	// empty repo
+	db, err := initRepo(0, 0)
+	if err != nil {
+		t.Fatalf("could not init repo %s", err)
+	}
+	defer db.Close()
+
+	taskDescription := "The only way to get more done is to have less to do"
+
+	id, err := task.Create(taskDescription)
 	if err != nil {
 		t.Fatalf("expected create item not fail got %s", err)
 	}
-	closed := len(taskRepo.GetByState(task.Closed))
-	if 0 != closed {
-		t.Fatalf("expected no closed item in repo got %d", closed)
+
+	closed, err := task.GetAllClosed()
+	if err != nil {
+		t.Fatalf("expected get all closed not fail: %s", err)
 	}
+	numberClosed := len(closed)
+	if 0 != numberClosed {
+		t.Fatalf("expected no closed item in repo got %d", numberClosed)
+	}
+
 	task.Close(id)
-	closed = len(taskRepo.GetByState(task.Closed))
-	if 1 != closed {
-		t.Fatalf("expected 1 closed item in repo got %d", closed)
+	closed, err = task.GetAllClosed()
+	if err != nil {
+		t.Fatalf("expected get all closed not fail: %s", err)
 	}
-	got := taskRepo.GetByState(task.Closed)[0].Description
-	if got != want {
-		t.Fatalf("expected closed item to be '%s' got '%s'", want, got)
+	numberClosed = len(closed)
+	if 1 != numberClosed {
+		t.Fatalf("expected 1 closed item in repo got %d", numberClosed)
+	}
+	got := closed[0].Description
+	if got != taskDescription {
+		t.Fatalf("expected closed item to be '%s' got '%s'", taskDescription, got)
 	}
 }
