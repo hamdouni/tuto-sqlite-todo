@@ -18,8 +18,8 @@ func main() {
 	defer teardown()
 
 	// We inject this repository in our business layer
-	// so our business know how to store and retreive tasks
-	task.Init(&store)
+	// so our business know how to store and retrieve tasks
+	task.Configure(&store)
 
 	// Then we can use our business layer
 	// without worrying about how the data is stored
@@ -35,7 +35,10 @@ func main() {
 	}
 
 	// We can use our store to get business items
-	items := store.GetAll()
+	items, err := store.GetAll()
+	if err != nil {
+		log.Fatalf("getting all tasks: %s", err)
+	}
 	for _, item := range items {
 		fmt.Printf("%s\n", item)
 	}

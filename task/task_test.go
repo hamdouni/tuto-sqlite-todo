@@ -18,21 +18,24 @@ func initRepo(opened, closed int) (task.Repository, error) {
 	if err != nil {
 		return &repo, err
 	}
-	task.Init(&repo)
+	task.Configure(&repo)
 	for i := 0; i < opened; i++ {
 		task.Create(fmt.Sprintf("write a book %v", i+1))
 	}
 	for i := 0; i < closed; i++ {
 		id, err := task.Create(fmt.Sprintf("finish a book %v", i+1))
 		if err != nil {
-			return nil, fmt.Errorf("creating task: %s", err)
+			return nil, fmt.Errorf("creating task: %w", err)
 		}
 		err = task.Close(id)
 		if err != nil {
-			return nil, fmt.Errorf("closing task %d: %s", id, err)
+			return nil, fmt.Errorf("closing task %d: %w", id, err)
 		}
 	}
-	all := repo.GetAll()
+	all, err := repo.GetAll()
+	if err != nil {
+		return nil, fmt.Errorf("getting all tasks: %w", err)
+	}
 	for _, item := range all {
 		fmt.Printf("%#v\n", item)
 	}
@@ -54,33 +57,6 @@ func fakeSQLiteRepo() (store sqlite.Store, err error) {
 		return store, err
 	}
 	return db, nil
-}
-
-// ensure the repo is initialized before writing
-func TestWritingNoRepo(t *testing.T) {
-	_, err := task.Create("create without a repo")
-	if err != task.ErrRepositoryNotDefined {
-		t.Fatalf("expected error %s got %s", task.ErrRepositoryNotDefined, err)
-	}
-}
-
-func TestReadAllFromNoRepo(t *testing.T) {
-	_, err := task.GetAll()
-	if err != task.ErrRepositoryNotDefined {
-		t.Fatalf("expected error %s got %s", task.ErrRepositoryNotDefined, err)
-	}
-}
-func TestReadAllOpenedFromNoRepo(t *testing.T) {
-	_, err := task.GetAllOpened()
-	if err != task.ErrRepositoryNotDefined {
-		t.Fatalf("expected error %s got %s", task.ErrRepositoryNotDefined, err)
-	}
-}
-func TestReadAllClosedFromNoRepo(t *testing.T) {
-	_, err := task.GetAllClosed()
-	if err != task.ErrRepositoryNotDefined {
-		t.Fatalf("expected error %s got %s", task.ErrRepositoryNotDefined, err)
-	}
 }
 
 func TestGetAll(t *testing.T) {

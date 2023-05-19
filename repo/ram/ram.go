@@ -21,8 +21,8 @@ func (l *List) Create(t task.Item) (ID int64, err error) {
 	l.repo = append(l.repo, t)
 	return t.ID, nil
 }
-func (l List) GetAll() []task.Item {
-	return l.repo
+func (l List) GetAll() ([]task.Item, error) {
+	return l.repo, nil
 }
 func (l List) GetByID(ID int64) (t task.Item, err error) {
 	for _, it := range l.repo {
@@ -32,14 +32,14 @@ func (l List) GetByID(ID int64) (t task.Item, err error) {
 	}
 	return t, fmt.Errorf("Could not found ID %d", ID)
 }
-func (l List) GetByState(st task.Status) []task.Item {
+func (l List) GetByState(st task.Status) ([]task.Item, error) {
 	var items []task.Item
 	for _, it := range l.repo {
 		if it.State == st {
 			items = append(items, it)
 		}
 	}
-	return items
+	return items, nil
 }
 func (l *List) Update(item task.Item) error {
 	l.repo[item.ID-1] = item

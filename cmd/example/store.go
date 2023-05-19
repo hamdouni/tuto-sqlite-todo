@@ -15,23 +15,23 @@ const pragma = "_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_pragma=synchr
 func getStore() (dbs sqlite.Store, teardown func() error, err error) {
 	tmpDir, err := os.MkdirTemp("", "temp")
 	if err != nil {
-		return dbs, teardown, fmt.Errorf("could not create a temporary folder for database: %s", err)
+		return dbs, teardown, fmt.Errorf("could not create a temporary folder for database: %w", err)
 	}
 
 	dbpath := filepath.Join(tmpDir, "testbase.db")
 	dbs, err = sqlite.Open(dbpath, pragma)
 	if err != nil {
-		return dbs, teardown, fmt.Errorf("could not open database: %s", err)
+		return dbs, teardown, fmt.Errorf("could not open database: %w", err)
 	}
 	// the teardown function
 	return dbs, func() error {
 		err := dbs.Close()
 		if err != nil {
-			return fmt.Errorf("closing db: %s", err)
+			return fmt.Errorf("closing db: %w", err)
 		}
 		err = os.RemoveAll(tmpDir)
 		if err != nil {
-			return fmt.Errorf("removing temporary dir %s: %s", tmpDir, err)
+			return fmt.Errorf("removing temporary dir %s: %w", tmpDir, err)
 		}
 		return nil
 	}, nil

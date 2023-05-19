@@ -21,7 +21,7 @@ func Open(path, params string) (s Store, err error) {
 	dsn := fmt.Sprintf("%s?%s", path, params)
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
-		return s, fmt.Errorf("error opening database %s got %s", path, err)
+		return s, fmt.Errorf("error opening database %s got %w", path, err)
 	}
 	s.database = db
 	s.dbpath = path
@@ -61,12 +61,12 @@ func (s Store) Update(t task.Item) error {
 	_, err = st.Exec(t.Description, t.State, t.ID)
 	return err
 }
-func (s Store) GetAll() []task.Item {
+func (s Store) GetAll() ([]task.Item, error) {
 	var t []task.Item
 	q := "SELECT id,description,state FROM task"
 	rows, err := s.database.Query(q)
 	if err != nil {
-		return t
+		return t, err
 	}
 	var item task.Item
 	for rows.Next() {
@@ -76,7 +76,7 @@ func (s Store) GetAll() []task.Item {
 		}
 		t = append(t, item)
 	}
-	return t
+	return t, nil
 }
 func (s Store) GetByID(id int64) (task.Item, error) {
 	var t task.Item
@@ -87,12 +87,12 @@ func (s Store) GetByID(id int64) (task.Item, error) {
 	}
 	return t, nil
 }
-func (s Store) GetByState(status task.Status) []task.Item {
+func (s Store) GetByState(status task.Status) ([]task.Item, error) {
 	var t []task.Item
 	q := "SELECT id,description,state FROM task WHERE state=?"
 	rows, err := s.database.Query(q, status)
 	if err != nil {
-		return t
+		return t, err
 	}
 	var item task.Item
 	for rows.Next() {
@@ -102,5 +102,5 @@ func (s Store) GetByState(status task.Status) []task.Item {
 		}
 		t = append(t, item)
 	}
-	return t
+	return t, nil
 }

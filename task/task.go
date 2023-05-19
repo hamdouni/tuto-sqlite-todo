@@ -29,8 +29,8 @@ var config = struct {
 	repo Repository
 }{}
 
-// Init permet de pluger le dépot de données.
-func Init(r Repository) {
+// Configure permet de pluger le dépot de données.
+func Configure(r Repository) {
 	config.repo = r
 }
 
@@ -39,15 +39,12 @@ func Create(desc string) (int64, error) {
 	if desc == "" {
 		return 0, ErrEmptyTask
 	}
-	if config.repo == nil {
-		return 0, ErrRepositoryNotDefined
-	}
 	id, err := config.repo.Create(Item{
 		Description: desc,
 		State:       StatusOpened,
 	})
 	if err != nil {
-		return 0, fmt.Errorf("creating task '%s': %s", desc, err)
+		return 0, fmt.Errorf("creating task '%s': %w", desc, err)
 	}
 	return id, nil
 }
@@ -56,7 +53,7 @@ func Create(desc string) (int64, error) {
 func Close(id int64) error {
 	it, err := config.repo.GetByID(id)
 	if err != nil {
-		return fmt.Errorf("closing task id %d: %s", id, err)
+		return fmt.Errorf("closing task id %d: %w", id, err)
 	}
 	it.State = StatusClosed
 	return config.repo.Update(it)
@@ -66,33 +63,24 @@ func Close(id int64) error {
 func Get(id int64) (it Item, err error) {
 	it, err = config.repo.GetByID(id)
 	if err != nil {
-		return it, fmt.Errorf("getting task id %d: %s", id, err)
+		return it, fmt.Errorf("getting task id %d: %w", id, err)
 	}
 	return it, nil
 }
 
 // GetAll retourne toutes les tâches
 func GetAll() (its []Item, err error) {
-	if config.repo == nil {
-		return its, ErrRepositoryNotDefined
-	}
-	return config.repo.GetAll(), nil
+	return config.repo.GetAll()
 }
 
 // GetAllOpened retourne toutes les tâches ouvertes
 func GetAllOpened() (its []Item, err error) {
-	if config.repo == nil {
-		return its, ErrRepositoryNotDefined
-	}
-	return config.repo.GetByState(StatusOpened), nil
+	return config.repo.GetByState(StatusOpened)
 }
 
 // GetAllClosed retourne toutes les tâches fermées
 func GetAllClosed() (its []Item, err error) {
-	if config.repo == nil {
-		return its, ErrRepositoryNotDefined
-	}
-	return config.repo.GetByState(StatusClosed), nil
+	return config.repo.GetByState(StatusClosed)
 }
 
 // String permet à notre structure d'être facilement affichable
