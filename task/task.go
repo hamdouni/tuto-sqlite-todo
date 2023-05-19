@@ -21,17 +21,9 @@ type Item struct {
 	State       Status
 }
 
-// config stock la configuration de l'application.
-// C'est le bon endroit pour "pluger" des comportements externes au
-// métier comme le dépot de données.
-// Pas besoin de l'exposer à l'extérieur, donc un c minuscule !
-var config = struct {
-	repo Repository
-}{}
-
-// Configure permet de pluger le dépot de données.
-func Configure(r Repository) {
-	config.repo = r
+// init application with defaults
+func init() {
+	WithRepo(DefaultRepository{})
 }
 
 // Create crée une tâche à partir d'une description

@@ -19,7 +19,7 @@ func main() {
 
 	// We inject this repository in our business layer
 	// so our business know how to store and retrieve tasks
-	task.Configure(&store)
+	task.WithRepo(&store)
 
 	// Then we can use our business layer
 	// without worrying about how the data is stored

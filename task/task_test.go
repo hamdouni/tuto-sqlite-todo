@@ -18,7 +18,7 @@ func initRepo(opened, closed int) (task.Repository, error) {
 	if err != nil {
 		return &repo, err
 	}
-	task.Configure(&repo)
+	task.WithRepo(&repo)
 	for i := 0; i < opened; i++ {
 		task.Create(fmt.Sprintf("write a book %v", i+1))
 	}

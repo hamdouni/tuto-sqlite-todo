@@ -15,11 +15,6 @@ type Repository interface {
 // DefaultRepository is assigned to task if no repository is configured
 type DefaultRepository struct{}
 
-func init() {
-	dr := DefaultRepository{}
-	config.repo = dr
-}
-
 func (r DefaultRepository) Create(i Item) (int64, error) {
 	return 0, ErrRepositoryNotConfigured
 }
